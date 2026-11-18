@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>그저 장난감</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 720px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.7;
+      color: #24292f;
+    }
+    h1 {
+      font-size: 1.5rem;
+      border-bottom: 1px solid #d0d7de;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    /* 리스트 기본 스타일 제거 */
+    ul {
+      list-style: none;
+      padding-left: 22px;
+      margin: 4px 0;
+      border-left: 1px solid #e1e4e8;
+    }
+    .root-list {
+      padding-left: 0;
+      border-left: none;
+    }
+    li {
+      margin: 4px 0;
+    }
+    /* 폴더(접기/펼치기) 스타일 */
+    details > summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: #1f2328;
+      user-select: none;
+    }
+    details > summary:hover {
+      color: #0969da;
+    }
+    /* 파일 링크 스타일 */
+    a {
+      text-decoration: none;
+      color: #0969da;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📁 Toy (list)</h1>
+
+  <ul class="root-list">
+
+    <!-- [예시 1] 펼쳐져 있는 폴더 (open 속성 사용) -->
+    <li>
+      <details open>
+        <summary>📂 개발자</summary>
+        <ul>
+          
+          <li>🎮 <a href="./typing.html">타자 속도 측정기</a></li>
+
+        </ul>
+      </details>
+    </li>
+
+    <li>
+      <details>
+        <summary>📂 NULL</summary>
+        <ul>
+          <!-- <li>📄 <a href="./projects/app.html">app.html</a></li>
+          <li>📄 <a href="./projects/style.css">style.css</a></li> -->
+        </ul>
+      </details>
+    </li>
+
+    <!-- [예시 3] 최상위(루트)에 바로 있는 단일 파일 -->
+    <li>📂 <a href="../index.html">../</a></li>
+  </ul>
+
+</body>
+</html>
