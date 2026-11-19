@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사다리타기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: 'Pretendard', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="max-w-4xl w-full bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 md:p-8 space-y-6">
+
+        <!-- 상단 헤더 -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+                <h1 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-stairs text-cyan-500"></i> 사다리타기
+                </h1>
+                <p class="text-xs text-slate-400 mt-1">위·아래 항목을 적고 인원 수를 골라 바로 시작해 보세요</p>
+            </div>
+            <a href="../" class="text-xs font-medium text-cyan-600 hover:text-cyan-700 bg-cyan-50 px-3 py-2 rounded-xl transition">
+                <i class="fa-solid fa-house mr-1"></i> 메인으로
+            </a>
+        </div>
+
+        <!-- 컨트롤 바 (개수 조절 & 액션) -->
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-600 mr-1">칸 수:</span>
+                <button onclick="changeCount(-1)" class="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:border-cyan-400 text-slate-700 font-bold transition">-</button>
+                <span id="count-display" class="w-8 text-center font-bold text-cyan-600 text-base">4</span>
+                <button onclick="changeCount(1)" class="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:border-cyan-400 text-slate-700 font-bold transition">+</button>
+                <span class="text-[11px] text-slate-400 ml-1">(2~8개)</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="regenerateLadder()" class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-white border border-slate-200 hover:border-cyan-400 text-slate-700 transition">
+                    <i class="fa-solid fa-shuffle mr-1 text-cyan-500"></i> 사다리 다시 만들기
+                </button>
+                <button onclick="revealAll()" class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white transition">
+                    <i class="fa-solid fa-eye mr-1"></i> 전체 결과 보기
+                </button>
+            </div>
+        </div>
+
+        <!-- 상단 입력 영역 -->
+        <div id="top-inputs" class="grid gap-2"></div>
+
+        <!-- 사다리 캔버스 -->
+        <div class="bg-slate-50/70 rounded-2xl border border-slate-100 p-3 flex justify-center overflow-x-auto">
+            <canvas id="ladder-canvas" width="760" height="320" class="max-w-full cursor-pointer"></canvas>
+        </div>
+
+        <!-- 하단 결과 입력 영역 -->
+        <div id="bottom-inputs" class="grid gap-2"></div>
+
+        <!-- 결과 요약 배너 -->
+        <div id="result-banner" class="hidden bg-cyan-50/80 border border-cyan-200/70 text-cyan-900 px-4 py-3 rounded-2xl text-sm font-medium"></div>
+
+    </div>
+
+    <script>
+        let count = 4;
+        const MIN_COUNT = 2;
+        const MAX_COUNT = 8;
+
+        let topValues = ["1번", "2번", "3번", "4번", "5번", "6번", "7번", "8번"];
+        let bottomValues = ["당첨!", " ", " ", " ", " ", " ", " ", " "];
+
+        // rungs: [{ row, col }] -> col과 col+1 사이를 잇는 가로줄
+        let rungs = [];
+        const NUM_ROWS = 10;
+
+        // tracedPaths: startCol -> { points: [{x, y}], endCol, color }
+        let tracedPaths = {};
+        let isAnimating = false;
+
+        const canvas = document.getElementById('ladder-canvas');
+        const ctx = canvas.getContext('2d');
+        const topInputsEl = document.getElementById('top-inputs');
+        const bottomInputsEl = document.getElementById('bottom-inputs');
+        const countDisplayEl = document.getElementById('count-display');
+        const resultBannerEl = document.getElementById('result-banner');
+
+        const PALETTE = ["#06b6d4", "#2563eb", "#0ea5e9", "#14b8a6", "#6366f1", "#0284c7", "#0d9488", "#3b82f6"];
+
+        function renderInputs() {
+            countDisplayEl.innerText = count;
+            topInputsEl.style.gridTemplateColumns = `repeat(${count}, minmax(0, 1fr))`;
+            bottomInputsEl.style.gridTemplateColumns = `repeat(${count}, minmax(0, 1fr))`;
+
+            topInputsEl.innerHTML = '';
+            bottomInputsEl.innerHTML = '';
+
+            for (let i = 0; i < count; i++) {
+                const topInput = document.createElement('input');
+                topInput.type = 'text';
+                topInput.value = topValues[i] || `${i + 1}번`;
+                topInput.placeholder = `위 ${i + 1}`;
+                topInput.className = 'w-full px-2 py-2 text-center text-xs md:text-sm font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-cyan-400 focus:bg-white transition';
+                topInput.addEventListener('input', (e) => {
+                    topValues[i] = e.target.value;
+                    updateResultBanner();
+                });
+                topInputsEl.appendChild(topInput);
+
+                const bottomInput = document.createElement('input');
+                bottomInput.type = 'text';
+                bottomInput.value = bottomValues[i] || `결과 ${i + 1}`;
+                bottomInput.placeholder = `아래 ${i + 1}`;
+                bottomInput.dataset.col = i;
+                bottomInput.className = 'bottom-box w-full px-2 py-2 text-center text-xs md:text-sm font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-cyan-400 focus:bg-white transition';
+                bottomInput.addEventListener('input', (e) => {
+                    bottomValues[i] = e.target.value;
+                    updateResultBanner();
+                });
+                bottomInputsEl.appendChild(bottomInput);
+            }
+        }
+
+        function generateRungs() {
+            rungs = [];
+            for (let r = 0; r < NUM_ROWS; r++) {
+                let lastColUsed = -2;
+                for (let c = 0; c < count - 1; c++) {
+                    // 인접 가로줄 충돌 방지
+                    if (c - lastColUsed >= 2 && Math.random() < 0.42) {
+                        rungs.push({ row: r, col: c });
+                        lastColUsed = c;
+                    }
+                }
+            }
+            // 가로줄이 아예 없는 경우 최소 1개 보장
+            if (rungs.length === 0 && count > 1) {
+                rungs.push({ row: Math.floor(NUM_ROWS / 2), col: 0 });
+            }
+        }
+
+        function getColX(col) {
+            const paddingX = 60;
+            const usableWidth = canvas.width - paddingX * 2;
+            if (count === 1) return canvas.width / 2;
+            return paddingX + (usableWidth / (count - 1)) * col;
+        }
+
+        function getRowY(row) {
+            const topY = 28;
+            const bottomY = canvas.height - 28;
+            return topY + ((bottomY - topY) / (NUM_ROWS + 1)) * (row + 1);
+        }
+
+        function computePath(startCol) {
+            const topY = 20;
+            const bottomY = canvas.height - 20;
+            let currentCol = startCol;
+            const points = [{ x: getColX(currentCol), y: topY }];
+
+            for (let r = 0; r < NUM_ROWS; r++) {
+                const y = getRowY(r);
+                const x = getColX(currentCol);
+                points.push({ x, y });
+
+                // 오른쪽으로 가는 가로줄 확인
+                const rightRung = rungs.find(rung => rung.row === r && rung.col === currentCol);
+                // 왼쪽으로 가는 가로줄 확인
+                const leftRung = rungs.find(rung => rung.row === r && rung.col === currentCol - 1);
+
+                if (rightRung) {
+                    currentCol += 1;
+                    points.push({ x: getColX(currentCol), y });
+                } else if (leftRung) {
+                    currentCol -= 1;
+                    points.push({ x: getColX(currentCol), y });
+                }
+            }
+
+            points.push({ x: getColX(currentCol), y: bottomY });
+            return { points, endCol: currentCol };
+        }
+
+        function drawBaseLadder() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const topY = 20;
+            const bottomY = canvas.height - 20;
+
+            // 세로줄 그리기
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            for (let c = 0; c < count; c++) {
+                const x = getColX(c);
+                ctx.beginPath();
+                ctx.moveTo(x, topY);
+                ctx.lineTo(x, bottomY);
+                ctx.stroke();
+
+                // 상단 시작 클릭 포인트
+                ctx.fillStyle = tracedPaths[c] ? tracedPaths[c].color : '#06b6d4';
+                ctx.beginPath();
+                ctx.arc(x, topY, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 가로줄 그리기
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 3;
+            rungs.forEach(rung => {
+                const y = getRowY(rung.row);
+                const x1 = getColX(rung.col);
+                const x2 = getColX(rung.col + 1);
+                ctx.beginPath();
+                ctx.moveTo(x1, y);
+                ctx.lineTo(x2, y);
+                ctx.stroke();
+            });
+        }
+
+        function drawTracedPaths(activeCol = null, partialPoints = null) {
+            Object.entries(tracedPaths).forEach(([colStr, data]) => {
+                const col = Number(colStr);
+                if (col === activeCol && partialPoints) return;
+                strokePolyline(data.points, data.color, 4);
+            });
+
+            if (partialPoints && activeCol !== null) {
+                strokePolyline(partialPoints, PALETTE[activeCol % PALETTE.length], 4.5);
+            }
+        }
+
+        function strokePolyline(points, color, width) {
+            if (points.length < 2) return;
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function highlightBottomBoxes() {
+            const boxes = document.querySelectorAll('.bottom-box');
+            boxes.forEach(box => {
+                box.style.borderColor = '';
+                box.style.backgroundColor = '';
+                box.style.color = '';
+            });
+
+            Object.values(tracedPaths).forEach(data => {
+                const targetBox = document.querySelector(`.bottom-box[data-col="${data.endCol}"]`);
+                if (targetBox) {
+                    targetBox.style.borderColor = data.color;
+                    targetBox.style.backgroundColor = '#ecfeff';
+                    targetBox.style.color = '#0f172a';
+                }
+            });
+        }
+
+        function updateResultBanner() {
+            const entries = Object.entries(tracedPaths);
+            if (entries.length === 0) {
+                resultBannerEl.classList.add('hidden');
+                return;
+            }
+            resultBannerEl.classList.remove('hidden');
+            const summary = entries
+                .sort((a, b) => Number(a[0]) - Number(b[0]))
+                .map(([startIdx, data]) => {
+                    const startLabel = topValues[startIdx] || `${Number(startIdx) + 1}번`;
+                    const endLabel = bottomValues[data.endCol] || `결과 ${data.endCol + 1}`;
+                    return `<span class="inline-flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-cyan-100 mr-2 mb-1">
+                        <span class="w-2 h-2 rounded-full" style="background:${data.color}"></span>
+                        <strong>${startLabel}</strong> → <span>${endLabel}</span>
+                    </span>`;
+                })
+                .join('');
+            resultBannerEl.innerHTML = `<div class="text-xs text-cyan-700 font-bold mb-1.5">추적 결과</div><div class="flex flex-wrap">${summary}</div>`;
+        }
+
+        function animateColumn(startCol, onComplete) {
+            const { points, endCol } = computePath(startCol);
+            const color = PALETTE[startCol % PALETTE.length];
+            tracedPaths[startCol] = { points, endCol, color };
+
+            let segmentIdx = 0;
+            let progress = 0;
+            const speed = 0.18;
+
+            function step() {
+                const p1 = points[segmentIdx];
+                const p2 = points[segmentIdx + 1];
+                const partial = points.slice(0, segmentIdx + 1);
+
+                const curX = p1.x + (p2.x - p1.x) * progress;
+                const curY = p1.y + (p2.y - p1.y) * progress;
+                partial.push({ x: curX, y: curY });
+
+                drawBaseLadder();
+                drawTracedPaths(startCol, partial);
+
+                progress += speed;
+                if (progress >= 1) {
+                    progress = 0;
+                    segmentIdx++;
+                }
+
+                if (segmentIdx < points.length - 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    drawBaseLadder();
+                    drawTracedPaths();
+                    highlightBottomBoxes();
+                    updateResultBanner();
+                    if (onComplete) onComplete();
+                }
+            }
+
+            requestAnimationFrame(step);
+        }
+
+        canvas.addEventListener('click', (e) => {
+            if (isAnimating) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const clickX = (e.clientX - rect.left) * scaleX;
+
+            // 가장 가까운 세로줄 찾기
+            let closestCol = 0;
+            let minDist = Infinity;
+            for (let c = 0; c < count; c++) {
+                const dist = Math.abs(clickX - getColX(c));
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestCol = c;
+                }
+            }
+
+            if (minDist <= 45) {
+                isAnimating = true;
+                animateColumn(closestCol, () => {
+                    isAnimating = false;
+                });
+            }
+        });
+
+        function revealAll() {
+            if (isAnimating) return;
+            tracedPaths = {};
+            for (let c = 0; c < count; c++) {
+                const { points, endCol } = computePath(c);
+                tracedPaths[c] = { points, endCol, color: PALETTE[c % PALETTE.length] };
+            }
+            drawBaseLadder();
+            drawTracedPaths();
+            highlightBottomBoxes();
+            updateResultBanner();
+        }
+
+        function regenerateLadder() {
+            if (isAnimating) return;
+            tracedPaths = {};
+            resultBannerEl.classList.add('hidden');
+            generateRungs();
+            renderInputs();
+            drawBaseLadder();
+        }
+
+        function changeCount(delta) {
+            if (isAnimating) return;
+            const next = count + delta;
+            if (next < MIN_COUNT || next > MAX_COUNT) return;
+            count = next;
+            regenerateLadder();
+        }
+
+        // 초기 실행
+        generateRungs();
+        renderInputs();
+        drawBaseLadder();
+    </script>
+</body>
+</html>

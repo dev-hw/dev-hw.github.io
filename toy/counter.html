@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>글자수세기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: 'Pretendard', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="max-w-3xl w-full bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 md:p-9 space-y-6">
+
+        <!-- 상단 헤더 -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+                <h1 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-spell-check text-cyan-500"></i> 글자수 세기
+                </h1>
+                <p class="text-xs text-slate-400 mt-1">서버 전송 없는 정적 페이지</p>
+            </div>
+            <a href="../" class="text-xs font-medium text-cyan-600 hover:text-cyan-700 bg-cyan-50 px-3 py-2 rounded-xl transition">
+                <i class="fa-solid fa-house mr-1"></i> 메인으로
+            </a>
+        </div>
+
+        <!-- 카운트 요약 카드 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                <p class="text-xs text-slate-400">공백 포함</p>
+                <p id="with-space" class="text-2xl font-bold text-cyan-600 mt-1">0</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                <p class="text-xs text-slate-400">공백 제외</p>
+                <p id="without-space" class="text-2xl font-bold text-blue-600 mt-1">0</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                <p class="text-xs text-slate-400">단어 수</p>
+                <p id="word-count" class="text-2xl font-bold text-slate-700 mt-1">0</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                <p class="text-xs text-slate-400">줄 수</p>
+                <p id="line-count" class="text-2xl font-bold text-slate-700 mt-1">0</p>
+            </div>
+        </div>
+
+        <!-- 텍스트 입력 영역 -->
+        <textarea id="text-input" rows="9" placeholder="여기에 글자를 입력하거나 붙여넣어 보세요..."
+            class="w-full p-5 bg-slate-50 border-2 border-slate-200 rounded-2xl text-sm md:text-base leading-relaxed focus:outline-none focus:border-cyan-400 focus:bg-white transition resize-y"></textarea>
+
+        <!-- 하단 액션 버튼 -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+            <span id="status-msg" class="text-xs text-slate-400">실시간 계산 중</span>
+            <div class="flex items-center gap-2">
+                <button onclick="copyText()" class="px-4 py-2 text-xs font-semibold rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white transition">
+                    <i class="fa-regular fa-copy mr-1"></i> 전체 복사
+                </button>
+                <!-- <button onclick="clearText()" class="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition">
+                    <i class="fa-solid fa-trash-can mr-1"></i> 지우기
+                </button> -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const textInput = document.getElementById('text-input');
+        const withSpaceEl = document.getElementById('with-space');
+        const withoutSpaceEl = document.getElementById('without-space');
+        const wordCountEl = document.getElementById('word-count');
+        const lineCountEl = document.getElementById('line-count');
+        const statusMsgEl = document.getElementById('status-msg');
+
+        function updateCounts() {
+            const text = textInput.value;
+            const withSpace = text.length;
+            const withoutSpace = text.replace(/\s+/g, '').length;
+            const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+            const lines = text === '' ? 0 : text.split(/\r\n|\r|\n/).length;
+
+            withSpaceEl.innerText = withSpace.toLocaleString();
+            withoutSpaceEl.innerText = withoutSpace.toLocaleString();
+            wordCountEl.innerText = words.toLocaleString();
+            lineCountEl.innerText = lines.toLocaleString();
+        }
+
+        function copyText() {
+            if (!textInput.value) return;
+            navigator.clipboard.writeText(textInput.value).then(() => {
+                statusMsgEl.innerText = '클립보드에 복사되었습니다!';
+                statusMsgEl.className = 'text-xs text-cyan-600 font-medium';
+                setTimeout(() => {
+                    statusMsgEl.innerText = '실시간 계산 중';
+                    statusMsgEl.className = 'text-xs text-slate-400';
+                }, 1500);
+            });
+        }
+
+        // function clearText() {
+        //     textInput.value = '';
+        //     updateCounts();
+        //     textInput.focus();
+        // }
+
+        textInput.addEventListener('input', updateCounts);
+        updateCounts();
+    </script>
+</body>
+</html>

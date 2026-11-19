@@ -29,7 +29,7 @@
                 </h1>
                 <p class="text-xs text-slate-400 mt-1">개발자 필수 생존 명령어 스피드 테스트</p>
             </div>
-            <a href="../index.html" class="text-xs font-medium text-cyan-600 hover:text-cyan-700 bg-cyan-50 px-3 py-2 rounded-xl transition">
+            <a href="../" class="text-xs font-medium text-cyan-600 hover:text-cyan-700 bg-cyan-50 px-3 py-2 rounded-xl transition">
                 <i class="fa-solid fa-house mr-1"></i> 메인으로
             </a>
         </div>
@@ -83,12 +83,34 @@
         // 재미있는 명령어나 코드 문장을 계속 추가하기!
         const CODE_SNIPPETS = [
             "git push origin main --force",
+            "git checkout main",
+            "git add .",
+            "git reset --hard HEAD~1",
+            "git log --oneline -n 5",
+
             "sudo rm -rf / --no-preserve-root",
             "docker-compose up -d --build",
+            'sudo find / -iname "*.conf"',
+
             "SELECT * FROM users WHERE coffee_level = 0;",
+            "DELETE FROM users;",
+
             "chmod 777 ./deploy.sh && ./deploy.sh",
-            "git reset --hard HEAD~1",
+            "watch -n 1 'free -h && df -h'",
             "ps aux | grep python | awk '{print $2}' | xargs kill -9",
+            "ps -ef | grep altibase",
+            "tail -f /var/log/syslog | grep -nir error",
+            "tail -f catalina.out",
+            "cp -rp app.conf app.conf.261119",
+            "pwd",
+            "kill -9 1",
+
+            'System.out.println("Hello, World!");',
+
+            "systemctl status chronyd",
+            "try { fixBug(); } catch (e) { createTwoMoreBugs(); }",
+            "echo 'It works on my machine!' > /dev/null",
+
             "console.log('Why does this work?');",
             "kubectl get pods --all-namespaces",
             "ssh -i ~/.ssh/id_rsa root@127.0.0.1"
